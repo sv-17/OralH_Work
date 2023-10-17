@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#501733">
+    <title>OralH - Detection Results</title>
+    <link rel="stylesheet" href="src/master.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .contt {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        .result {
+            font-size: 16px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="fullcontainer">
+        <div class="contt">
+            <h1>Detection Results</h1>
+            <div id="detectionResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Function to get URL parameters
+        function getURLParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Function to display detection results
+        function displayDetectionResults(data) {
+            var detectionResults = document.getElementById('detectionResults');
+            detectionResults.innerHTML = '';
+            data.forEach(function(result, index) {
+                var resultDiv = document.createElement('div');
+                resultDiv.className = 'result';
+                resultDiv.innerHTML = `Result ${index + 1}:<br>Class: ${result.class}, Score: ${result.score.toFixed(2)}, Box: [${result.box.join(', ')}]`;
+                detectionResults.appendChild(resultDiv);
+            });
+        }
+
+        // Get and parse the detection results from the URL parameter
+        var encodedResults = getURLParameter('results');
+        var results = JSON.parse(decodeURIComponent(encodedResults));
+
+        // Call the function to display the results
+        displayDetectionResults(results);
+    </script>
+</body>
+</html>

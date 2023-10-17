@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#501733">
+    <title>OralH</title>
+    <link rel="stylesheet" href="src/master.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="images/logo.png"> 
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <!-- Include the JSZip library for creating zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.0/jszip.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .contt {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        .btn {
+            width: 100%;
+            margin: 10px 2px;
+            background-color: #7e1e86;
+            color: #fff;
+            border-radius: 2px;
+        }
+
+        #videoContainer {
+            width: 320px; /* Set your desired width here */
+            height: 410px; /* Set your desired height here */
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        #camera,
+        #myCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #captureBtn {
+            display: block;
+        }
+
+        #retakeBtn,
+        #detectBtn,
+        #downloadBtn {
+            display: none;
+        }
+
+        #nextBtn {
+            display: none;
+        }
+        
+        #picCounter {
+            display: none;
+        }
+    </style>
+</head>
+<body onload="StartCamera();">
+    <div class="fullcontainer">
+        <div class="contt">
+            <p>OralH - Oral Hygiene Monitor</p>
+            <div id="videoContainer">
+                <video autoplay="true" id="camera"></video>
+                <canvas id="myCanvas" style="display: none;"></canvas>
+            </div>
+            <div id="picCounter">Pictures Taken: 0 / 3</div>
+            <button class="btn" id="captureBtn" onclick="captureImage();">Capture Image</button>
+            <button class="btn" id="retakeBtn" onclick="retakeImage();">Retake</button>
+            <button class="btn" id="nextBtn" onclick="nextImage();">Next</button>
+            <button class="btn" id="downloadBtn" onclick="downloadImages();">Download Images</button>
+            <button class="btn" id="detectBtn" onclick="detectObjects();">Detect</button>
+            <!-- Add a download link for the zip file -->
+            <a id="downloadLink" style="display: none;" download="captured_images.zip">Download Images</a>
+        </div>
+    </div>
+    <script>
+        var video = document.getElementById("camera");
+        var canvas = document.getElementById("myCanvas");
+        var videoContainer = document.getElementById("videoContainer");
+        var camera = false;
+        let currentStream = null;
+        var capturedImages = []; // Array to store captured images
+        var picCounter = 0;
+        var ctx = canvas.getContext('2d');
+        
+        function StartCamera() {
+            
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+        // User is on a mobile device
+        const constraints = {
+          video: {
+            facingMode: 'environment', // Use the rear camera
+            torch: true, // Turn on the flash
+          }
+        }
+    }
+            if (!camera) {
+                if (navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { exact: 320 }, /* Set desired width */
+                            height: { exact: 410 } /* Set desired height */
+                        }
+                    }).then(function (stream) {
+                        currentStream = stream;
+                        video.srcObject = currentStream;
+                        video.style.display = 'block';
+                        camera = true;
+                        document.getElementById("captureBtn").style.display = 'block';
+                        document.getElementById("picCounter").style.display = 'block';
+                        updatePicCounter();
+                    }).catch(function (err) {
+                        console.log(err);
+                    });
+                }
+            } else {
+                camera = false;
+                currentStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                document.getElementById("captureBtn").style.display = 'none';
+                document.getElementById("picCounter").style.display = 'none';
+            }
+        }
+        
+        function updatePicCounter() {
+            document.getElementById("picCounter").textContent = "Pictures Taken: " + picCounter + " / 3";
+        }
+
+        function captureImage() {
+    if (camera && picCounter < 3) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedImages.push(canvas.toDataURL('image/jpeg')); // Store the captured image
+        video.style.display = 'none';
+        canvas.style.display = 'block';
+        document.getElementById('captureBtn').style.display = 'none';
+        document.getElementById('retakeBtn').style.display = 'block';
+        document.getElementById('nextBtn').style.display = 'block';
+        document.getElementById('downloadBtn').style.display = 'none';
+        document.getElementById('detectBtn').style.display = 'none';
+        picCounter++;
+        updatePicCounter();
+
+        if (picCounter >= 3) {
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'block';
+            document.getElementById('detectBtn').style.display = 'block';
+        }
+    } else {
+        window.alert('Please start the camera');
+    }
+}
+
+
+        function retakeImage() {
+            if (capturedImages.length > 0) {
+                canvas.style.display = 'none';
+                video.style.display = 'block';
+                document.getElementById("captureBtn").style.display = 'block';
+                document.getElementById("retakeBtn").style.display = 'none';
+                document.getElementById("nextBtn").style.display = 'none';
+                document.getElementById("downloadBtn").style.display = 'none';
+                document.getElementById("detectBtn").style.display = 'none';
+                // Remove the last captured image from the array
+                capturedImages.pop();
+                picCounter--;
+                updatePicCounter();
+            } else {
+                window.alert('No images to retake. Please capture an image first.');
+            }
+        }
+
+        function nextImage() {
+            if (capturedImages.length > 0) {
+                canvas.style.display = 'none';
+                video.style.display = 'block';
+                document.getElementById("captureBtn").style.display = 'block';
+                document.getElementById("retakeBtn").style.display = 'none';
+                document.getElementById("nextBtn").style.display = 'none';
+                document.getElementById("downloadBtn").style.display = 'none';
+                document.getElementById("detectBtn").style.display = 'none';
+            } else {
+                window.alert('No images to proceed. Please capture an image first.');
+            }
+        }
+
+        function downloadImages() {
+    if (capturedImages.length > 0) {
+        var zip = new JSZip();
+        var folder = zip.folder('captured_images');
+        for (var i = 0; i < capturedImages.length; i++) {
+            folder.file('captured_image_' + (i + 1) + '.jpg', capturedImages[i].split('base64,')[1], { base64: true });
+        }
+        zip.generateAsync({ type: 'blob' }).then(function (content) {
+            var blobUrl = URL.createObjectURL(content);
+            var a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = 'captured_images.zip';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(blobUrl);
+        });
+    } else {
+        window.alert('No images to download. Please capture images first.');
+    }
+}
+
+
+        function detectObjects() {
+            // Add your detection code here
+            // After detection, you can display the results or take further actions
+            // Example: window.alert('Detecting objects...');
+        }
+    </script>
+</body>
+</html>
